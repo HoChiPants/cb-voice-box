@@ -1,0 +1,56 @@
+name: Build desktop apps
+
+on:
+  push:
+    branches: [main, staging]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: macos-14
+            name: CB-Voice-Box-macOS
+          - os: windows-2022
+            name: CB-Voice-Box-Windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install app dependencies
+        run: python -m pip install -r requirements.txt pyinstaller
+      - name: Build whisper.cpp (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          git clone --depth 1 --branch v1.9.1 https://github.com/ggml-org/whisper.cpp.git /tmp/whisper.cpp
+          cmake -S /tmp/whisper.cpp -B /tmp/whisper.cpp/build -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_EXAMPLES=ON
+          cmake --build /tmp/whisper.cpp/build --config Release -j 3
+          cp /tmp/whisper.cpp/build/bin/whisper-cli ./whisper-cli
+      - name: Download whisper.cpp (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Invoke-WebRequest https://github.com/ggml-org/whisper.cpp/releases/download/v1.9.1/whisper-bin-x64.zip -OutFile whisper.zip
+          Expand-Archive whisper.zip whisper-bin
+          Copy-Item whisper-bin/Release/* .
+      - name: Build macOS menu-bar app
+        if: runner.os == 'macOS'
+        run: pyinstaller --noconfirm --clean --windowed --name "CB Voice Box" --osx-bundle-identifier com.cbvoicebox.app --add-binary "whisper-cli:." cb_voice_box.py
+      - name: Build Windows tray app
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: pyinstaller --noconfirm --clean --windowed --onefile --name "CB-Voice-Box" --add-binary "whisper-cli.exe;." --add-binary "*.dll;." cb_voice_box.py
+      - name: Package macOS
+        if: runner.os == 'macOS'
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/CB Voice Box.app" "${{ matrix.name }}.zip"
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive "dist/CB-Voice-Box.exe" "${{ matrix.name }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: ${{ matrix.name }}.zip

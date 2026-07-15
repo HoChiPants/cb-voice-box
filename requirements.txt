@@ -1,0 +1,8 @@
+numpy>=1.24,<3
+Pillow>=10,<12
+pyperclip>=1.8,<2
+pynput>=1.7,<2
+pystray>=0.19,<1
+sounddevice>=0.4,<1
+soundfile>=0.12,<1
+pyobjc-framework-Cocoa>=10,<12; sys_platform == "darwin"

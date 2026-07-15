@@ -1,0 +1,60 @@
+; PCM1808 defaults to I2S slave mode when FMT, MD1, and MD0 are left open.
+; This program supplies 64 BCK cycles per stereo frame and samples DOUT on the
+; rising edge. It pushes one 32-bit word per channel; PCM1808's 24-bit sample
+; occupies bits 31:8, with the unused low eight bits clocked in afterward.
+.program pcm1808_i2s
+.side_set 2
+
+.wrap_target
+    set x, 31 side 0
+left_channel:
+    in pins, 1 side 1
+    jmp x-- left_channel side 0
+    set x, 31 side 2
+right_channel:
+    in pins, 1 side 3
+    jmp x-- right_channel side 2
+.wrap
+
+; Receive two 32-bit I2S slots while the PCM1808 is the clock master. The
+; program aligns itself to the high-to-low LRCK transition at the start of the
+; left channel. I2S delays the MSB by one BCK, so the first rising edge after
+; each LRCK transition is intentionally discarded.
+.program pcm1808_i2s_master_rx
+
+.wrap_target
+    wait 1 gpio 11
+    wait 0 gpio 11
+    wait 1 gpio 10
+    wait 0 gpio 10
+    set x, 30
+left_master:
+    wait 1 gpio 10
+    in pins, 1
+    wait 0 gpio 10
+    jmp x-- left_master
+    in null, 1
+
+    wait 1 gpio 11
+    wait 1 gpio 10
+    wait 0 gpio 10
+    set x, 30
+right_master:
+    wait 1 gpio 10
+    in pins, 1
+    wait 0 gpio 10
+    jmp x-- right_master
+    in null, 1
+.wrap
+
+; GPIO 13 is not a hardware GPOUT pin on RP2040. Generate the PCM1808 system
+; clock with a second PIO state machine so SCK can remain on the existing wire.
+; At an 8.192 MHz PIO instruction rate this produces a 4.096 MHz, 50% duty
+; cycle clock (256 x the 16 kHz audio sample rate).
+.program pcm1808_sck
+.side_set 1
+
+.wrap_target
+    nop side 1
+    nop side 0
+.wrap
