@@ -46,7 +46,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string CB Voice Box needs microphone access to receive audio from the connected USB radio." "dist/CB Voice Box.app/Contents/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1.1" "dist/CB Voice Box.app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1.2" "dist/CB Voice Box.app/Contents/Info.plist"
           /usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" "dist/CB Voice Box.app/Contents/Info.plist"
           codesign --force --deep --sign - --entitlements macos-entitlements.plist "dist/CB Voice Box.app"
       - name: Build Windows tray app
