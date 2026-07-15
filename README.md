@@ -19,7 +19,7 @@ Open the repository's **Actions** tab, choose the latest successful **Build desk
 - `CB-Voice-Box-macOS`
 - `CB-Voice-Box-Windows`
 
-The macOS build is not Apple-notarized yet. On first launch, Control-click the app, choose **Open**, then approve microphone access. Automatic paste also needs Accessibility permission in **System Settings → Privacy & Security → Accessibility**.
+The macOS build is not Apple-notarized yet. After trying to open it once, go to **System Settings → Privacy & Security**, scroll to **Security**, and click **Open Anyway** for CB Voice Box. Then approve microphone access. Automatic paste also needs Accessibility permission in **System Settings → Privacy & Security → Accessibility**. This one-time override is Apple's supported method for an app you trust that has not been notarized.
 
 The Windows build is produced automatically but is currently an early, untested build. Windows SmartScreen may warn because the executable is not code-signed.
 

@@ -42,6 +42,13 @@ jobs:
       - name: Build macOS menu-bar app
         if: runner.os == 'macOS'
         run: pyinstaller --noconfirm --clean --windowed --name "CB Voice Box" --osx-bundle-identifier com.cbvoicebox.app --add-binary "whisper-cli:." --add-data "ggml-tiny.en.bin:." cb_voice_box.py
+      - name: Add macOS privacy metadata and signature
+        if: runner.os == 'macOS'
+        run: |
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string CB Voice Box needs microphone access to receive audio from the connected USB radio." "dist/CB Voice Box.app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.1.1" "dist/CB Voice Box.app/Contents/Info.plist"
+          /usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" "dist/CB Voice Box.app/Contents/Info.plist"
+          codesign --force --deep --sign - --entitlements macos-entitlements.plist "dist/CB Voice Box.app"
       - name: Build Windows tray app
         if: runner.os == 'Windows'
         shell: pwsh
