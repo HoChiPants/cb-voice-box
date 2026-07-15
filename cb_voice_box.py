@@ -114,8 +114,8 @@ class VoiceBox:
     def menu(self) -> pystray.Menu:
         history_items = [
             pystray.MenuItem(
-                lambda item, text=item["text"]: text[:72] + ("…" if len(text) > 72 else ""),
-                lambda _icon, _item, text=item["text"]: self.copy_text(text),
+                item["text"][:72] + ("…" if len(item["text"]) > 72 else ""),
+                self.copy_action(item["text"]),
             )
             for item in self.history[:10]
         ] or [pystray.MenuItem("No transcriptions yet", None, enabled=False)]
@@ -131,6 +131,12 @@ class VoiceBox:
             pystray.MenuItem("Open app folder", lambda icon, item: self.open_folder()),
             pystray.MenuItem("Quit", self.quit),
         )
+
+    def copy_action(self, text: str):
+        """Create a pystray callback with exactly the required two arguments."""
+        def action(_icon, _item) -> None:
+            self.copy_text(text)
+        return action
 
     def refresh_menu(self) -> None:
         self.icon.menu = self.menu()
