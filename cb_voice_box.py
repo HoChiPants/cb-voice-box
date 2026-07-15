@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import json
 import os
-import platform
 import re
 import subprocess
 import sys
@@ -31,7 +30,6 @@ PTT_THRESHOLD = 0.05
 MIN_RECORDING_SECONDS = 0.25
 DEVICE_NAME = "CB Voice Box"
 HISTORY_LIMIT = 20
-MODEL_URL = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin"
 
 
 def data_dir() -> Path:
@@ -237,26 +235,10 @@ class VoiceBox:
             threading.Thread(target=self.transcribe, args=(finished,), daemon=True).start()
 
     def speech_paths(self) -> tuple[Path, Path]:
-        packaged = Path(getattr(sys, "_MEIPASS", Path(__file__).parent)) / ("whisper-cli.exe" if sys.platform == "win32" else "whisper-cli")
-        binary = Path(self.settings.whisper_bin) if self.settings.whisper_bin else packaged
-        model = Path(self.settings.whisper_model) if self.settings.whisper_model else DATA_DIR / "models" / "ggml-tiny.en.bin"
+        packaged = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
+        binary = Path(self.settings.whisper_bin) if self.settings.whisper_bin else packaged / ("whisper-cli.exe" if sys.platform == "win32" else "whisper-cli")
+        model = Path(self.settings.whisper_model) if self.settings.whisper_model else packaged / "ggml-tiny.en.bin"
         return binary, model
-
-    def ensure_model(self) -> bool:
-        _binary, model = self.speech_paths()
-        if model.is_file():
-            return True
-        try:
-            import urllib.request
-            model.parent.mkdir(parents=True, exist_ok=True)
-            partial = model.with_suffix(".download")
-            self.set_status("Downloading speech model once (75 MB)…")
-            urllib.request.urlretrieve(MODEL_URL, partial)
-            partial.replace(model)
-            return True
-        except Exception as error:
-            self.set_status(f"Model download failed: {error}", notify=True)
-            return False
 
     def transcribe(self, chunks: list[np.ndarray]) -> None:
         audio = np.concatenate(chunks, axis=0)
@@ -264,10 +246,8 @@ class VoiceBox:
             self.set_status("Too short — hold PTT a little longer")
             return
         binary, model = self.speech_paths()
-        if not binary.is_file():
-            self.set_status("Speech engine missing — reinstall the app", notify=True)
-            return
-        if not self.ensure_model():
+        if not binary.is_file() or not model.is_file():
+            self.set_status("Speech files missing — reinstall the app", notify=True)
             return
         peak = float(np.max(np.abs(audio)))
         if peak:

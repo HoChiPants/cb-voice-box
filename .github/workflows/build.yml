@@ -22,6 +22,9 @@ jobs:
           python-version: '3.11'
       - name: Install app dependencies
         run: python -m pip install -r requirements.txt pyinstaller
+      - name: Download bundled speech model
+        shell: bash
+        run: curl -L --fail --retry 3 -o ggml-tiny.en.bin https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.en.bin
       - name: Build whisper.cpp (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -38,11 +41,11 @@ jobs:
           Copy-Item whisper-bin/Release/* .
       - name: Build macOS menu-bar app
         if: runner.os == 'macOS'
-        run: pyinstaller --noconfirm --clean --windowed --name "CB Voice Box" --osx-bundle-identifier com.cbvoicebox.app --add-binary "whisper-cli:." cb_voice_box.py
+        run: pyinstaller --noconfirm --clean --windowed --name "CB Voice Box" --osx-bundle-identifier com.cbvoicebox.app --add-binary "whisper-cli:." --add-data "ggml-tiny.en.bin:." cb_voice_box.py
       - name: Build Windows tray app
         if: runner.os == 'Windows'
         shell: pwsh
-        run: pyinstaller --noconfirm --clean --windowed --onefile --name "CB-Voice-Box" --add-binary "whisper-cli.exe;." --add-binary "*.dll;." cb_voice_box.py
+        run: pyinstaller --noconfirm --clean --windowed --onefile --name "CB-Voice-Box" --add-binary "whisper-cli.exe;." --add-binary "*.dll;." --add-data "ggml-tiny.en.bin;." cb_voice_box.py
       - name: Package macOS
         if: runner.os == 'macOS'
         run: ditto -c -k --sequesterRsrc --keepParent "dist/CB Voice Box.app" "${{ matrix.name }}.zip"
